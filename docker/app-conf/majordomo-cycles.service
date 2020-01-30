@@ -1,0 +1,20 @@
+[Unit]
+Description=MajorDoMo Cycles
+Documentation=
+After=network-online.target
+
+[Service]
+Requires=apache2.service
+Type=simple
+User=www-data
+Group=www-data
+#UMask=007
+WorkingDirectory=/var/www
+ExecStart=/usr/bin/php /var/www/cycle.php
+ExecStop=/usr/bin/pkill -f cycle_*.php
+Restart=always
+# Time to wait before forcefully stopped.
+TimeoutStopSec=300
+
+[Install]
+WantedBy=multi-user.target

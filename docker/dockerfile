@@ -1,0 +1,85 @@
+FROM debian:stretch
+
+MAINTAINER Kirill Filippov "filippov.kirill@gmail.com"
+
+ENV DEBIAN_FRONTEND noninteractive
+ENV TERM xterm
+
+###############################################
+# Install software
+#
+RUN apt-get update && apt-get install -y apt-utils
+RUN apt-get upgrade -y
+
+# apache
+RUN apt-get install -y --no-install-recommends apache2 apache2-bin apache2-data apache2-utils libapache2-mod-php libapache2-mod-php7.0
+RUN service apache2 stop
+RUN a2enmod rewrite
+COPY app-conf/apache2.conf /etc/apache2/sites-available/000-default.conf
+
+# php
+RUN apt-get install -y --no-install-recommends \
+        php7.0-bz2 php7.0-cli php7.0-common \
+        php7.0-curl php7.0-gd php7.0-json php7.0-mbstring \
+        php7.0-mcrypt php7.0-mysql \
+        php7.0-opcache php7.0-readline \
+        php7.0-xml \
+        mariadb-client-10.1 mariadb-client-core-10.1 php-mysql php7.0-mysql \
+        curl libcurl3 libcurl3-dev ca-certificates \
+        nano wget unzip sudo smartmontools net-tools
+ADD app-conf/php.ini /etc/php/7.0/apache2/conf.d/10-majordomo.ini
+ADD app-conf/php.ini /etc/php/7.0/cli/conf.d/10-majordomo.ini
+
+#RUN apt-get install --no-install-recommends -y supervisor
+#COPY app-conf/supervisor.conf /etc/supervisor/supervisord.conf
+
+RUN apt-get autoremove -y && apt-get autoclean -y
+
+VOLUME ["/var/www"]
+
+# majordomo
+RUN mkdir /root/majordomo && curl -L https://github.com/sergejey/majordomo/archive/master.zip -o /root/majordomo/master.zip && \
+	unzip -q /root/majordomo/master.zip -d /root/majordomo && rm /root/majordomo/master.zip
+
+RUN rm -Rf /var/www/*
+RUN mkdir -p /var/logs/www
+RUN chown www-data:www-data /var/logs/www
+RUN cp -Trp /root/majordomo/majordomo-master /var/www
+RUN cp -rp /root/majordomo/majordomo-master/.htaccess /var/www
+RUN rm -Rf /root/majordomo
+ADD app-conf/config.php /var/www/config.php
+ADD app-conf/loader.php /var/www/lib/loader.php
+RUN chmod 777 /var/www
+RUN chown -R www-data:www-data /var/www
+RUN find /var/www/ -type f -exec chmod 0666 {} \;
+RUN find /var/www/ -type d -exec chmod 0777 {} \;
+
+ADD app-conf/start.sh /start.sh
+RUN chmod +x /start.sh
+
+ENV MYSQL_HOST=mysql
+ENV MYSQL_DATABASE=db_terminal
+ENV MYSQL_PORT=3306
+ENV MYSQL_USER=majordomo
+ENV MYSQL_PASSWORD=
+ENV MJDM_TITLE=MajorDoMo:Docker
+ENV MJDM_BASE_URL=http://127.0.0.1:80
+
+RUN export MYSQL_HOST=$MYSQL_HOST && \
+    export MYSQL_PORT=$MYSQL_PORT && \
+    export MYSQL_DATABASE=$MYSQL_DATABASE && \
+    export MYSQL_USER=$MYSQL_USER && \
+    export MYSQL_PASSWORD=$MYSQL_PASSWORD && \
+    export MJDM_TITLE=$MJDM_TITLE && \
+    export MJDM_BASE_URL=$MJDM_BASE_URL
+
+RUN echo ". /etc/apache2/majordomo" >> /etc/apache2/envvars
+
+#VOLUME ["/var/www""]
+#VOLUME ["/var/logs/www"]
+
+EXPOSE 80
+EXPOSE 8002
+
+CMD ["/start.sh"]
+
