@@ -1,7 +1,9 @@
 FROM mysql:5.7
 
-RUN rm /etc/localtime
-RUN ln -s /usr/share/zoneinfo/Etc/UTC /etc/localtime
-RUN "date"
+ADD disable_strict_mode.cnf /etc/mysql/conf.d/disable_strict_mode.cnf
+
+#RUN rm /etc/localtime
+#RUN ln -s /usr/share/zoneinfo/Etc/UTC /etc/localtime
+#RUN "date"
 
 

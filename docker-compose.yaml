@@ -14,17 +14,19 @@ services:
         MYSQL_PASSWORD: majordomo
         MYSQL_DATABASE: db_terminal
 
+      restart: always
+
    majordomo:
       build: 
         context: ./docker
       ports:
         - '8090:80'
-        - '9001:9001'
+#        - '9001:9001'
         - '8002:8002'
       
       volumes:
          - '/opt/majordomo/logs:/var/logs/www'
-#         - '/opt/majordomo/www:/var/www'
+         - '/opt/majordomo/www:/var/www'
 
       environment:
         MYSQL_HOST: 192.168.1.50
@@ -37,6 +39,8 @@ services:
 
       links:
         - mysql
+
+      restart: always
 
 #      network_mode: "host"
 
